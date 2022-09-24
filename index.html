@@ -48,22 +48,25 @@ class VoronoiDiagramAnimation {
         this.drwer = new VoronoiDiagram(size);
         this.points = this.rdmpoints(pointsn,0.05);
         this.t = Date.now()%100;
+        this.voidc = this.rdmcolors(pointsn,0.1);
         this.update();
-        this.voidc = this.rdmcolors(this.drwer.points.length);
     }
     update() {
         let points = [];
-        for (let p of this.points) {
-            points.push(this.getpos(p))
+        this.voidcolor = [];
+        for (let i=0;i<this.points.length;i++) {
+            points.push(this.getpos(this.points[i]));
+            this.voidcolor.push(this.getcolors(this.voidc[i]))
         }
         //console.log(points)
+        //console.log(this.voidc)
         this.drwer.updatepooints(points);
         this.drwer.make();
         this.t++;
     }
-    rdmcolors(n) {
+    rdmcolors(n,as) {
         let ret = [];
-        for (let i=0;i<n;i++) {ret.push([Math.floor(Math.random()*255),Math.floor(Math.random()*255),Math.floor(Math.random()*255)]);}
+        for (let i=0;i<n;i++) {ret.push([Math.random()*as,Math.random()*as,Math.random()*as,Math.random(),Math.random(),Math.random()]);}
         return ret;
     }
     rdmpoints(n,as) {
@@ -75,6 +78,9 @@ class VoronoiDiagramAnimation {
     }
     getpos(point) {
         return [Math.sin(this.t*point[0]+point[2])*this.size[0]*0.5+this.size[0]*0.5,Math.sin(this.t*point[1]+point[3])*this.size[1]*0.5+this.size[1]*0.5];
+    }
+    getcolors(color) {
+        return [Math.sin(this.t*color[0]+color[3])*255,Math.sin(this.t*color[1]+color[4])*255,Math.sin(this.t*color[2]+color[5])*255]
     }
     max(arr) {
         let max = 0;
@@ -92,7 +98,7 @@ class VoronoiDiagramAnimation {
                 let iarridx = (iy*x+ix)*4;
                 let dpdsidx = (iy*x+ix)*1;
                 let acolor = (255-drwer.dist[dpdsidx]*mag)/255;
-                let color = this.voidc[drwer.p[dpdsidx]-1];
+                let color = this.voidcolor[drwer.p[dpdsidx]-1];
                 iarr[iarridx+0] = color[0]*acolor;
                 iarr[iarridx+1] = color[1]*acolor;
                 iarr[iarridx+2] = color[2]*acolor;
