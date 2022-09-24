@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title></title>
+    </head>
+    <body>
+        <div id="img_area">
+            <canvas id="imgOut" style="image-rendering: pixelated;"></canvas>
+        </div>
+    </body>
+</html>
+<script>
+
+class VoronoiDiagram {
+    constructor(size,points=[]) {
+        this.size = size;
+        this.points = points;
+        this.dist = new Uint16Array(size[0]*size[1]);
+        this.p = new Uint8ClampedArray(size[0]*size[1]);
+    }
+    updatepooints(points) {
+        this.points = points;
+    }
+    make() {
+        this.dist = this.dist.fill(2**16-1);
+        for (let i=0;i<this.points.length;i++) {
+            let point = this.points[i];
+            for (let y=0;y<this.size[1];y++) {
+                for (let x=0;x<this.size[0];x++) {
+                    let idx = y*this.size[0]+x;
+                    let tlen = this.length([x,y],[point[0],point[1]]);
+                    if (tlen<this.dist[idx]) {
+                        this.dist[idx] = tlen;
+                        this.p[idx] = i+1;
+                    }
+                }
+            }
+        }
+    }
+    length(p1,p2) {
+      return Math.sqrt((p1[0]-p2[0])**2+(p1[1]-p2[1])**2)
+    }
+}
+
+class VoronoiDiagramAnimation {
+    constructor(size,pointsn) {
+        this.size = size;
+        this.drwer = new VoronoiDiagram(size);
+        this.points = this.rdmpoints(pointsn,0.05);
+        this.t = Date.now()%100;
+        this.update();
+        this.voidc = this.rdmcolors(this.drwer.points.length);
+    }
+    update() {
+        let points = [];
+        for (let p of this.points) {
+            points.push(this.getpos(p))
+        }
+        //console.log(points)
+        this.drwer.updatepooints(points);
+        this.drwer.make();
+        this.t++;
+    }
+    rdmcolors(n) {
+        let ret = [];
+        for (let i=0;i<n;i++) {ret.push([Math.floor(Math.random()*255),Math.floor(Math.random()*255),Math.floor(Math.random()*255)]);}
+        return ret;
+    }
+    rdmpoints(n,as) {
+        let ret = [];
+        for (let i=0;i<n;i++) {
+            ret.push([Math.random()*as,Math.random()*as,Math.random(),Math.random()]);
+        }
+        return ret;
+    }
+    getpos(point) {
+        return [Math.sin(this.t*point[0]+point[2])*this.size[0]*0.5+this.size[0]*0.5,Math.sin(this.t*point[1]+point[3])*this.size[1]*0.5+this.size[1]*0.5];
+    }
+    max(arr) {
+        let max = 0;
+        for (let i of arr) {if (i>max) {max = i;}}
+        return max;
+    }
+    image() {
+        let drwer = this.drwer;
+        let x = drwer.size[0];
+        let y = drwer.size[1];
+        let iarr = new Uint8ClampedArray(x*y*4).fill(255);
+        let mag = 255/this.max(drwer.dist);
+        for (let iy = 0; iy < y; iy++) {
+            for (let ix = 0; ix < x; ix++) {
+                let iarridx = (iy*x+ix)*4;
+                let dpdsidx = (iy*x+ix)*1;
+                let acolor = (255-drwer.dist[dpdsidx]*mag)/255;
+                let color = this.voidc[drwer.p[dpdsidx]-1];
+                iarr[iarridx+0] = color[0]*acolor;
+                iarr[iarridx+1] = color[1]*acolor;
+                iarr[iarridx+2] = color[2]*acolor;
+                iarr[iarridx+3] = 255;
+            }
+        }
+        return new ImageData(iarr,x,y);
+    }
+}
+
+let size = [1000,1000]
+let runtime = new VoronoiDiagramAnimation(size,20);
+show();
+resizeImg(runtime.image());
+
+function show() {
+    runtime.update()
+    let image = runtime.image()
+    let co = document.getElementById("imgOut");
+    co.height=image.height;co.width=image.width;co.getContext('2d').putImageData(image,0,0);
+    window.onresize = function() {resizeImg(image)};
+    setTimeout(show,0);
+}
+
+// resize window
+function resizeImg(draw) {
+    dw = draw.width; dh = draw.height;
+    let bottom_area = 0;let rw = 0;let rh = 0;
+    let ww = window.innerWidth;
+    let wh = window.innerHeight-bottom_area;
+    let csc = 1;
+    hcsc = ww/dw; wcsc = wh/dh;
+    if (hcsc>wcsc) {
+        csc = wcsc; rw = (ww - dw*csc)/2;
+    }
+    else {
+        csc = hcsc; rh = (wh - dh*csc)/2;
+    }
+    document.getElementById("imgOut").style.marginTop = (rh).toString()+"px";
+    document.getElementById("imgOut").style.marginBottom = (rh).toString()+"px";
+    document.getElementById("imgOut").style.marginLeft = (rw).toString()+"px";
+    document.getElementById("imgOut").style.marginRight = (rw).toString()+"px";
+    document.getElementById("imgOut").style.transform = "scale("+csc.toString()+","+csc.toString()+")";
+};
+
+</script>
+<style>
+    body::-webkit-scrollbar {
+        display: none;
+    }
+    body {
+        overflow: hidden;
+        -ms-overflow-style: none;    /* IE, Edge 対応 */
+        scrollbar-width: none;       /* Firefox 対応 */
+        background: rgb(41, 45, 75);
+        cursor: unset;
+    }
+    #img_area {
+        top: 0;
+        left: 0;
+        position: absolute;
+        z-index: -1;
+    }
+    #imgOut {
+        transform-origin: top left;
+        cursor: none;
+    }
+
+</style>
